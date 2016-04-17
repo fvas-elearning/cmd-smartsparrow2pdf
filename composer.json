@@ -1,11 +1,11 @@
 {
-    "name": "ttek/tk2simple",
+    "name": "fvas/cmd-smartsparrow2pdf",
     "type": "project",
-    "description": "A simple Tk Ver 2 framework project",
+    "description": "Convert a smartsparrow csv to a pdf. CSV results are read from an email account.",
     "keywords":  [
         "tropotek"
     ],
-    "time": "2015-05-01",
+    "time": "2016-05-01",
     "license": "MIT",
     "version": "master",
     "minimum-stability": "dev",
@@ -19,18 +19,7 @@
     "autoload":  {
         "psr-0":  {
             "": "src/"
-        },
-        "files":  [
-            "src/App/Bootstrap.php"
-        ]
-    },
-    "scripts":  {
-        "post-install-cmd":  [
-            "Tk\\Composer\\Script\\Event\\InitProject::postInstall"
-        ],
-        "post-update-cmd":  [
-            "Tk\\Composer\\Script\\Event\\InitProject::postUpdate"
-        ]
+        }
     },
     "extra":  {
         "branch-alias":  {
@@ -39,10 +28,7 @@
     },
     "require":  {
         "php": ">=5.3.3",
-        "ttek/tk-installers": "~2.0",
-        "ttek/tk-domtemplate": "~2.0",
-        "ttek/tk-form": "~2.0",
-        "ttek/tk-table": "~2.0"
+        "ttek/tk-framework": "~2.0"
     },
     "require-dev":  {
     }
