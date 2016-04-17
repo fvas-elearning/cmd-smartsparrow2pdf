@@ -1,0 +1,49 @@
+{
+    "name": "ttek/tk2simple",
+    "type": "project",
+    "description": "A simple Tk Ver 2 framework project",
+    "keywords":  [
+        "tropotek"
+    ],
+    "time": "2015-05-01",
+    "license": "MIT",
+    "version": "master",
+    "minimum-stability": "dev",
+    "authors":  [
+         {
+            "name": "Michael Mifsud",
+            "email": "info@tropotek.com.au",
+            "homepage": "http://www.tropotek.com/"
+        }
+    ],
+    "autoload":  {
+        "psr-0":  {
+            "": "src/"
+        },
+        "files":  [
+            "src/App/Bootstrap.php"
+        ]
+    },
+    "scripts":  {
+        "post-install-cmd":  [
+            "Tk\\Composer\\Script\\Event\\InitProject::postInstall"
+        ],
+        "post-update-cmd":  [
+            "Tk\\Composer\\Script\\Event\\InitProject::postUpdate"
+        ]
+    },
+    "extra":  {
+        "branch-alias":  {
+            "dev-master": "1.0.x-dev"
+        }
+    },
+    "require":  {
+        "php": ">=5.3.3",
+        "ttek/tk-installers": "~2.0",
+        "ttek/tk-domtemplate": "~2.0",
+        "ttek/tk-form": "~2.0",
+        "ttek/tk-table": "~2.0"
+    },
+    "require-dev":  {
+    }
+}
