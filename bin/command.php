@@ -18,6 +18,9 @@ $siteUrl = '/';
 include($sitePath.'/vendor/autoload.php');
 $config = \Tk\Config::getInstance();
 
+// Remember to remove this in a live environment
+$config['debug'] = true;
+
 
 $argv = $_SERVER['argv'];
 $argc = $_SERVER['argc'];
@@ -35,6 +38,7 @@ TEXT;
 $args = array();
 $minArgs = 1;
 $maxArgs = 2;
+
 $server= 'outlook.unimelb.edu.au';
 $username = 'fvas-elearning@unimelb.edu.au';
 $password = '';
@@ -74,98 +78,65 @@ try {
     if (!is_readable($tmpPath)) {
         mkdir($tmpPath, 0777, true);
     }
-
-
-    $mbox = imap_open("{{$server}/ssl/novalidate-cert}INBOX", $username, $password, null, 1, array('DISABLE_AUTHENTICATOR' => array('GSSAPI')));
     
+    $messageList = array();
+    
+    
+    $imap = imap_open("{{$server}/ssl/novalidate-cert}INBOX", $username, $password, null, 1, array('DISABLE_AUTHENTICATOR' => array('GSSAPI')));
     /* grab emails */
-    $emails = imap_search($mbox,'ALL');
+    $imap_emails = imap_search($imap,'ALL');
             
     $csvAttachments = array();
-    if ($emails) {
-        rsort($emails);
+    if ($imap_emails) {
+        rsort($imap_emails);
         /* for every email. Get csv Attachements.. */
-        foreach($emails as $email_number) {
-            $overview = imap_fetch_overview($mbox, $email_number);
-            if (preg_match('/noreply@smartsparrow.com/i', $overview[0]->from) && preg_match('/Student Guest (.+) has finished Workshop Testing/i', $overview[0]->subject, $regs)) {
-                $attachments = getAttachments   ($mbox, $email_number);
+        foreach($imap_emails as $email_number) {
+            $overview = current(imap_fetch_overview($imap, $email_number));
+            if (preg_match('/noreply@smartsparrow.com/i', $overview->from) && $overview->answered == false && $overview->flagged == false && preg_match('/Student (.+) (.+) has finished Workshop Testing/i', $overview->subject, $regs)) {
+                $attachments = getAttachments($imap, $email_number);
                 foreach ($attachments as $file) {
                     if (preg_match('/\.csv$/i', $file['filename'])) {
-                        $file['subject'] = $overview[0]->subject;
-                        $csvAttachments[] = $file;
+                        $emailData = array();
+                        $emailData['csv'] = $file;
+                        $emailData['subject'] = $overview->subject;
+                        $emailData['workshopId'] = $regs[2];
+                        $emailData['studentName'] = $regs[1];
+                        $messageList[$email_number] = buildPdf($emailData);
                     }
                 }
+                imap_setflag_full($imap, $email_number, "\\Seen \\Flagged \\Answered");
             }
         }
     }
-    imap_close($mbox);
+    imap_close($imap);
 
     
-    $emailList = array();
-    $tmpPdf = tempnam ($tmpPath, 'pdf-').'.pdf';
-    //$tmpPdf = 'doc.pdf';
-    foreach($csvAttachments as $i => $csvFile) {
-        
-        $tmpCsv = tempnam ($tmpPath, 'csv-');
-        file_put_contents($tmpCsv, $csvFile['attachment']);
-        
-        $template = \Dom\Template::loadFile($templateFile);
-        $row = 0;
-        if (($handle = fopen($tmpCsv, 'r')) !== FALSE) {
-            while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
-                $row++;
-                if ($row == 1) continue;
-                $num = count($data);
-                $template->appendHtml(str_replace(' ', '_', trim($data[3])),'<p>'. htmlentities($data[7]).'</p>');
-                if (preg_match('/Email entry$/i', $data[3]) && filter_var(trim($data[7]), FILTER_VALIDATE_EMAIL)) {
-                    $emailList[] = trim($data[7]);
-                }
-            }
-            fclose($handle);
-        }
-        
-        unlink($tmpCsv);
-        
-        $modifier = new \Tk\Dom\Modifier\Modifier();
-        $modifier->add(new \App\DomModifier\ImageFilter($tmpPath . '/images'));
-        $modifier->execute($template->getDocument());
-        
-        // instantiate and use the dompdf class
-        $dompdf = new \Dompdf\Dompdf(array(
-            'DOMPDF_ENABLE_REMOTE' => true,
-            'DOMPDF_TEMP_DIR' => $tmpPath,
-            'DEBUGKEEPTEMP' => true,
-            'DEBUGPNG' => true
-        ));
-        $dompdf->loadHtml($template->toString());
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $pdf = $dompdf->output();
-        file_put_contents($tmpPdf, $pdf);
-        
-    }
-    
-    //var_dump($emailList);
     // Send emails with pdf attachment
-    foreach($emailList as $e) {
-        $e = 'mifsudm@unimelb.edu.au';
-        $mail = new \PHPMailer\PHPMailer\PHPMailer();
-        // Set PHPMailer to use the sendmail transport
-        //$mail->isSendmail();
-        $mail->isMail();
-        //Set who the message is to be sent from
-        $mail->setFrom('fvas-elearning@unimelb.edu.au', 'FVAS eLearning');
-        //Set an alternative reply-to address
-        //$mail->addReplyTo('replyto@example.com', 'First Last');
-        //Set who the message is to be sent to
-        $mail->addAddress($e);
+    $sent = 0;
+    foreach($messageList as $emailData) {
+        
+        foreach ($emailData['recipients'] as  $to ) {
 
+            $mail = new \PHPMailer\PHPMailer\PHPMailer();
+            // Set PHPMailer to use the sendmail transport
+            //$mail->isSendmail();
+            $mail->isMail();
+            //Set who the message is to be sent from
+            $mail->setFrom('fvas-elearning@unimelb.edu.au', 'FVAS eLearning');
+            //Set who the message is to be sent to
+            if ($config->isDebug()) {
+                $mail->addAddress('mifsudm@unimelb.edu.au');
+                //$mail->addAddress('seth.paddle@unimelb.edu.au');
+            } else {
+                $mail->addAddress($to);
+            }
+            $mail->addCustomHeader('SS-TO', $to);
 
-        //Set the subject line
-        $mail->Subject = 'PHPMailer sendmail test';
-        //Read an HTML message body from an external file, convert referenced images to embedded,
-        //convert HTML into a basic plain-text alternative body
-        $html = <<<HTML
+            //Set the subject line
+            $mail->Subject = 'Workshop Group Answers - ' . $emailData['workshopId'] . ' - ' . date('j M Y');
+            //Read an HTML message body from an external file, convert referenced images to embedded,
+            //convert HTML into a basic plain-text alternative body
+            $html = <<<HTML
 <html>
 <head>
   <title>Email</title>
@@ -174,39 +145,83 @@ try {
   <h2>Workshop Group Answers</h2>
   <p>Check the attachment for your workshop group answers.</p>
   
-  
-  <p>This is a test</p>
-  
-  <h4>Can this also work</h4>
-  
+  <p style="display: none;" data-why="This is required for the server to send the mail. Not sure why...">This is a test</p>
 </body>
 </html>
 HTML;
+            $mail->msgHTML($html);
 
-        $mail->msgHTML($html);
-        //Replace the plain text body with one created manually
-        //$mail->AltBody = 'This is a plain-text message body';
-        
-        //Attach an image file
-        $mail->addAttachment($tmpPdf, 'workshop.pdf');
-        
-        //send the message, check for errors
-        if (!$mail->send()) {
-            echo "Mailer Error: " . $mail->ErrorInfo;
-        } else {
-            //echo "Message sent!";
+            //Attach an image file
+            $mail->addAttachment($emailData['pdf']);
+
+            //send the message, check for errors
+            if (!$mail->send()) {
+                echo "Mailer Error: " . $mail->ErrorInfo;
+            } else {
+                $sent++;
+            }
         }
     }
     
-    
-    
-    unlink($tmpPdf);
-    // Delete Tmp path images dir.
-    deleteDirContent($tmpPath);
+    // Cleanup any temp files
+    if (is_dir($tmpPath)) {
+        deleteDirContent($tmpPath);
+        rmdir($tmpPath);
+    }
         
-    echo "\n";
+    echo 'Sent: ' . $sent . "\n";
 } catch(\Exception $e) {
     die ($e->__toString());
+}
+
+
+
+function buildPdf($emailData)
+{
+    global $tmpPath, $templateFile;
+    
+    $csvFile = $emailData['csv'];
+    $emailData['recipients'] = array();
+    $emailData['pdf'] = $tmpPath.'/'.$emailData['workshopId'].'.pdf';
+        
+    $tmpCsv = tempnam ($tmpPath, 'csv-');
+    file_put_contents($tmpCsv, $csvFile['attachment']);
+        
+    $template = \Dom\Template::loadFile($templateFile);
+    
+    $row = 0;
+    if (($handle = fopen($tmpCsv, 'r')) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+            $row++;
+            if ($row == 1) continue;
+            $template->appendHtml(str_replace(' ', '_', trim($data[3])),'<p>'. htmlentities($data[7]).'</p>');
+            if (preg_match('/Email entry$/i', $data[3]) && filter_var(trim($data[7]), FILTER_VALIDATE_EMAIL)) {
+                $emailData['recipients'][] = trim($data[7]);
+            }
+        }
+        fclose($handle);
+    }
+        
+    unlink($tmpCsv);
+    
+    $modifier = new \Tk\Dom\Modifier\Modifier();
+    $modifier->add(new \App\DomModifier\ImageFilter($tmpPath . '/images'));
+    $modifier->execute($template->getDocument());
+    
+    // instantiate and use the dompdf class
+    $dompdf = new \Dompdf\Dompdf(array(
+        'DOMPDF_ENABLE_REMOTE' => true,
+        'DOMPDF_TEMP_DIR' => $tmpPath,
+        'DEBUGKEEPTEMP' => true,
+        'DEBUGPNG' => true
+    ));
+    $dompdf->loadHtml($template->toString());
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+    $pdf = $dompdf->output();
+    file_put_contents($emailData['pdf'], $pdf);
+    
+    return $emailData;
 }
 
 
@@ -214,14 +229,10 @@ HTML;
 
 
 
-
-
-
-
-function getAttachments($mbox, $email_number)
+function getAttachments($imap, $email_number)
 {
     $attachments = array();
-    $structure = imap_fetchstructure($mbox, $email_number);
+    $structure = imap_fetchstructure($imap, $email_number);
     if (isset($structure->parts) && count($structure->parts)) {
         for ($i = 0; $i < count($structure->parts); $i++) {
 
@@ -252,7 +263,7 @@ function getAttachments($mbox, $email_number)
             }
 
             if ($attachments[$i]['is_attachment']) {
-                $attachments[$i]['attachment'] = imap_fetchbody($mbox, $email_number, $i + 1);
+                $attachments[$i]['attachment'] = imap_fetchbody($imap, $email_number, $i + 1);
                 if ($structure->parts[$i]->encoding == 3) { // 3 = BASE64
                     $attachments[$i]['attachment'] = base64_decode($attachments[$i]['attachment']);
                 } elseif ($structure->parts[$i]->encoding == 4) { // 4 = QUOTED-PRINTABLE
