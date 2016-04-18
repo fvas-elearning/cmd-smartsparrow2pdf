@@ -28,7 +28,10 @@
     },
     "require":  {
         "php": ">=5.3.3",
-        "ttek/tk-framework": "~2.0"
+        "ttek/tk-framework": "~2.0",
+        "ttek/tk-domtemplate": "~2.0",
+        "dompdf/dompdf": "0.7.x@beta",
+        "phpmailer/phpmailer": "~5.2"
     },
     "require-dev":  {
     }
