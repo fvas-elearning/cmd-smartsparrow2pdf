@@ -123,6 +123,7 @@ try {
     $sent = 0;
     foreach($messageList as $emailData) {
         foreach ($emailData['recipients'] as  $to ) {
+            
             //$mail = new \PHPMailer\PHPMailer\PHPMailer();
             $mail = new PHPMailer();
             // Set PHPMailer to use the sendmail transport
