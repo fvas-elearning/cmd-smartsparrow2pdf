@@ -5,3 +5,4 @@
 composer.lock
 data
 bin/config.php
+vendor
