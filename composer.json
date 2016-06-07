@@ -1,0 +1,38 @@
+{
+    "name": "fvas/cmd-smartsparrow2pdf",
+    "type": "project",
+    "description": "Convert a smartsparrow csv to a pdf. CSV results are read from an email account.",
+    "keywords":  [
+        "tropotek"
+    ],
+    "time": "2016-05-01",
+    "license": "MIT",
+    "version": "master",
+    "minimum-stability": "dev",
+    "authors":  [
+         {
+            "name": "Michael Mifsud",
+            "email": "info@tropotek.com.au",
+            "homepage": "http://www.tropotek.com/"
+        }
+    ],
+    "autoload":  {
+        "psr-0":  {
+            "": "src/"
+        }
+    },
+    "extra":  {
+        "branch-alias":  {
+            "dev-master": "1.0.x-dev"
+        }
+    },
+    "require":  {
+        "php": ">=5.3.3",
+        "ttek/tk-framework": "~2.0",
+        "ttek/tk-domtemplate": "~2.0",
+        "dompdf/dompdf": "0.7.x@beta",
+        "phpmailer/phpmailer": "~5.2"
+    },
+    "require-dev":  {
+    }
+}

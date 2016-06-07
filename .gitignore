@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+.htaccess
+.idea
+.directory
+composer.lock
+data
+bin/config.php
