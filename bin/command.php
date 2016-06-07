@@ -16,8 +16,9 @@
 $sitePath = dirname(__DIR__);
 $siteUrl = '/';
 include($sitePath.'/vendor/autoload.php');
-include('config.php');
-$config = \Tk\Config::getInstance();
+$config = \Tk\Config::getInstance($sitePath, $siteUrl);
+
+include(__DIR__ . '/config.php');
 
 
 $argv = $_SERVER['argv'];
@@ -73,8 +74,8 @@ try {
     
     $messageList = array();
     
-    //$imap = imap_open($server, $username, $password, null, 1, array('DISABLE_AUTHENTICATOR' => array('GSSAPI')));
-    $imap = imap_open($config->getServer(), $config->getUsername(), $config->getPassword());
+    $imap = imap_open($config['server'], $config['username'], $config['password'], null, 1, array('DISABLE_AUTHENTICATOR' => array('GSSAPI')));
+    //$imap = imap_open($config['server'], $config['username'], $config['password']);
     
     
     if (!$imap) {
@@ -83,7 +84,7 @@ try {
         throw new \Exception(current($err));
     }
     if ($config->isDebug()) {
-        echo 'Connected to: ' . $config->getServer() . " \n";
+        echo 'Connected to: ' . $config['server'] . " \n";
     }
     
     /* grab emails */
