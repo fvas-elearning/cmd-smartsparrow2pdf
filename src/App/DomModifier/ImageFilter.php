@@ -7,7 +7,7 @@ namespace App\DomModifier;
  * for mobile devices to load faster.
  *
  */
-class ImageFilter extends \Tk\Dom\Modifier\Filter\Iface
+class ImageFilter extends \Dom\Modifier\Filter\Iface
 {
     
     private $tmpPath = '';

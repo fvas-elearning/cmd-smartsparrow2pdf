@@ -123,7 +123,8 @@ try {
     $sent = 0;
     foreach($messageList as $emailData) {
         foreach ($emailData['recipients'] as  $to ) {
-            $mail = new \PHPMailer\PHPMailer\PHPMailer();
+            //$mail = new \PHPMailer\PHPMailer\PHPMailer();
+            $mail = new PHPMailer();
             // Set PHPMailer to use the sendmail transport
             //$mail->isSendmail();
             $mail->isMail();
@@ -210,7 +211,7 @@ function buildPdf($emailData)
         
     unlink($tmpCsv);
     
-    $modifier = new \Tk\Dom\Modifier\Modifier();
+    $modifier = new \Dom\Modifier\Modifier();
     $modifier->add(new \App\DomModifier\ImageFilter($tmpPath . '/images'));
     $modifier->execute($template->getDocument());
     
